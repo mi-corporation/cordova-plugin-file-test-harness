@@ -863,11 +863,13 @@ NSString* const kCDVFilesystemURLPrefix = @"cdvfile";
     [self.commandDelegate runInBackground:^ {
         // Handle chunking and variable-length encoding (e.g. UTF-8).
         // Handle the start offset strictly, but extend the end offset as needed to prevent splitting multi-byte characters.
-        NSInteger extendedEnd = end > 0 && end > start ? [self extendTextRangeEnd:end encoding:encoding] : end;
+        NSInteger extendedEnd = end > 0 && end > start ? [self extendTextSelectionEnd:end encoding:encoding] : end;
+        // NOTE: extendedEnd could extend past the end of the file.
+        // We're relying on our CDVFileSystem impls to be able to handle that.
         [fs readFileAtURL:localURI start:start end:extendedEnd callback:^(NSData* data, NSString* mimeType, CDVFileError errorCode) {
             CDVPluginResult* result = nil;
             if (data != nil) {
-                NSUInteger length = end > 0 && end > start ? [self extendDesiredLengthOfData:data desired:(end - start) encoding:encoding] : [data length];
+                NSUInteger length = end > 0 && end > start ? [self numBytesToDecodeOfData:data desired:(end - start) encoding:encoding] : [data length];
                 NSString* str = [[NSString alloc] initWithBytesNoCopy:(void*)[data bytes] length:length encoding:NSUTF8StringEncoding freeWhenDone:NO];
                 // Check that UTF8 conversion did not fail.
                 if (str != nil) {
@@ -890,8 +892,9 @@ NSString* const kCDVFilesystemURLPrefix = @"cdvfile";
     }];
 }
 
-// Extend the end range for readAsText to accomodate multi-byte characters when chunking
-- (NSInteger)extendTextRangeEnd:(NSInteger)end encoding:(NSString*)encoding
+// Extend the end offset passed to readFileAtURL to accomodate multi-byte characters when chunking.
+// This determines how many extra bytes to read. We'll determine how many of these bytes to actually decode below.
+- (NSInteger)extendTextSelectionEnd:(NSInteger)end encoding:(NSString*)encoding
 {
     if ([@"UTF-8" caseInsensitiveCompare:encoding] == NSOrderedSame) {
         // All valid UTF-8 chars are 4 bytes or less, so never have to look ahead more than 3 chars to find a
@@ -903,19 +906,20 @@ NSString* const kCDVFilesystemURLPrefix = @"cdvfile";
     }
 }
 
-// Given data, which may be longer than the desired length, a desired length, and an encoding, extend the desired
-// length as necessary so that the specified slice ends at a character boundary.
-- (NSUInteger)extendDesiredLengthOfData:(NSData*)data desired:(NSUInteger)desired encoding:(NSString*)encoding
+// Given data, which may be longer than the desired length, a desired byte length, and an encoding,
+// determine how many bytes to decode, making sure the decoded chunk ends at a character boundary.
+- (NSUInteger)numBytesToDecodeOfData:(NSData*)data desired:(NSUInteger)desired encoding:(NSString*)encoding
 {
     if (desired > [data length]) {
         // Never extend past end of buffer
         return [data length];
     } else if (desired == 0) {
+        // Don't try to extend if desired length is 0 (no way characters could be split)
         return desired;
     } else if ([@"UTF-8" caseInsensitiveCompare:encoding] == NSOrderedSame) {
         uint8_t *start = (uint8_t*)[data bytes];
         // The last byte within the desired length that represents the start of a character.
-        // Start with the last byte in the desired range, then move backwards until we find a character boundary...
+        // Start with the last byte in the desired range, then move backwards until we find a character boundary.
         uint8_t *lastCharStart = start + desired - 1;
         // Continue looping so long as:
         //   - We don't extend past beginning of buffer

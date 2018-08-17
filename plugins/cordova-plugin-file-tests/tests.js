@@ -2473,9 +2473,7 @@ exports.defineAutoTests = function () {
                     var reader = new FileReader(); // eslint-disable-line no-undef
                     reader.onprogress = progressFunc;
                     reader.onload = verifier;
-                    reader.onerror = function (evt) {
-                        failed(null, done, 'reader.onerror - Error reading file: ' + file + ' using function: ' + funcName, evt.target.error);
-                    };
+                    reader.onerror = failed.bind(null, done, 'reader.onerror - Error reading file: ' + file + ' using function: ' + funcName);
                     if (sliceEnd !== undefined) {
                         // 'type' is specified so that is will be preserved in the resulting file:
                         // http://www.w3.org/TR/FileAPI/#slice-method-algo -> "6.4.1. The slice method" -> 4. A), 6. c)
@@ -2508,8 +2506,8 @@ exports.defineAutoTests = function () {
                 }, undefined, undefined, JSON.stringify(testObject));
             });
             it('file.spec.84.2 should read multi-byte UTF-8 chars across chunk boundaries', function (done) {
-                var oldChunkSize = FileReader.READ_CHUNK_SIZE;
-                FileReader.READ_CHUNK_SIZE = 4;
+                var oldChunkSize = FileReader.READ_CHUNK_SIZE; // eslint-disable-line no-undef
+                FileReader.READ_CHUNK_SIZE = 4; // eslint-disable-line no-undef
                 // \u0080    -- 2 bytes in UTF-8
                 // \u0800    -- 3 bytes in UTF-8
                 // \u{10000} -- 4 bytes in UTF-8
@@ -2518,7 +2516,7 @@ exports.defineAutoTests = function () {
                 // ways across a chunk boundary.
                 var text = '---\u0080---\u0800--\u0800---\u{10000}--\u{10000}-\u{10000}';
                 var doneAndReset = function () {
-                    FileReader.READ_CHUNK_SIZE = oldChunkSize;
+                    FileReader.READ_CHUNK_SIZE = oldChunkSize; // eslint-disable-line no-undef
                     done();
                 };
                 runReaderTest('readAsText', false, doneAndReset, null, function (evt) {
