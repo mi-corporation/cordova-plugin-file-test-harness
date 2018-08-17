@@ -1,5 +1,5 @@
 {
-    "name": "com.concretedata.cordovapluginfiletestharness",
+    "name": "com.mico.cordovapluginfiletestharness",
     "displayName": "Cordova Plugin File Tests",
     "version": "0.0.1",
     "description": "A harness for running the cordova-plugin-file-tests test suite.",
