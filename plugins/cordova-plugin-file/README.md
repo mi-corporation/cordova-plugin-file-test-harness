@@ -21,6 +21,11 @@ description: Read/write files on the device.
 #         under the License.
 -->
 
+## About this fork
+
+This fork fixes [CB-13570](https://issues.apache.org/jira/browse/CB-13570) on Android, iOS, and Windows (the three platforms we currently target). Specifically, for text reads with UTF-8 encoding, the native plugin now detects split multi-byte characters at chunk boundaries and extends the current chunk as needed to prevent splitting.
+
+
 |AppVeyor|Travis CI|
 |:-:|:-:|
 |[![Build status](https://ci.appveyor.com/api/projects/status/github/apache/cordova-plugin-file?branch=master)](https://ci.appveyor.com/project/ApacheSoftwareFoundation/cordova-plugin-file)|[![Build Status](https://travis-ci.org/apache/cordova-plugin-file.svg?branch=master)](https://travis-ci.org/apache/cordova-plugin-file)|
